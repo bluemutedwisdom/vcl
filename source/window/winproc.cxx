@@ -2034,12 +2034,8 @@ static void ImplHandleSalKeyMod( Window* pWindow, SalKeyModEvent* pEvent )
     if ( !pChild )
         return;
 
-    // send modkey events only if useful data is available
-    if( pEvent->mnModKeyCode != 0 )
-    {
-        CommandModKeyData data( pEvent->mnModKeyCode );
-        ImplCallCommand( pChild, COMMAND_MODKEYCHANGE, &data );
-    }
+    CommandModKeyData data( pEvent->mnModKeyCode );
+    ImplCallCommand( pChild, COMMAND_MODKEYCHANGE, &data );
 }
 
 static void ImplHandleInputLanguageChange( Window* pWindow )
