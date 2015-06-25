@@ -5024,7 +5024,7 @@ void MenuFloatingWindow::KeyInput( const KeyEvent& rKEvent )
             sal_uInt16 nPos = 0;
             sal_uInt16 nDuplicates = 0;
             MenuItemData* pData = (nCharCode && pMenu) ? pMenu->GetItemList()->SearchItem( nCharCode, rKEvent.GetKeyCode(), nPos, nDuplicates, nHighlightedItem ) : NULL;
-            if ( pData )
+            if ( pData && bMenuKey )
             {
                 if ( pData->pSubMenu || nDuplicates > 1 )
                 {
