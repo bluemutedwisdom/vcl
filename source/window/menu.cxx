@@ -88,6 +88,9 @@ using namespace vcl;
 // document closer
 #define IID_DOCUMENTCLOSE 1
 
+unsigned int nHideAccel;
+bool bMenuKey;
+
 static bool ImplAccelDisabled()
 {
     // display of accelerator strings may be suppressed via configuration
@@ -704,6 +707,7 @@ private:
 
     std::map< sal_uInt16, AddButtonEntry > m_aAddButtons;
 
+    void            RedrawMenus( bool bHideAccels );
     void            HighlightItem( sal_uInt16 nPos, bool bHighlight );
     void            ChangeHighlightItem( sal_uInt16 n, bool bSelectPopupEntry, bool bAllowRestoreFocus = true, bool bDefaultToDocument = true );
 
@@ -2804,7 +2808,7 @@ void Menu::ImplPaint( Window* pWin, sal_uInt16 nBorder, long nStartY, MenuItemDa
                     aTmpPos.X() = aPos.X() + nTextPos;
                     aTmpPos.Y() = aPos.Y();
                     aTmpPos.Y() += nTextOffsetY;
-                    sal_uInt16 nStyle = nTextStyle|TEXT_DRAW_MNEMONIC;
+                    sal_uInt16 nStyle = nTextStyle|TEXT_DRAW_MNEMONIC | nHideAccel;
                     if ( pData->bIsTemporary )
                         nStyle |= TEXT_DRAW_DISABLE;
                     MetricVector* pVector = bLayout ? &mpLayoutData->m_aUnicodeBoundRects : NULL;
@@ -3244,6 +3248,7 @@ MenuBar::MenuBar() : Menu( true )
     mbCloserVisible     = false;
     mbFloatBtnVisible   = false;
     mbHideBtnVisible    = false;
+    nHideAccel = 0x8000;
 }
 
 MenuBar::MenuBar( const MenuBar& rMenu ) : Menu( true )
@@ -3254,6 +3259,7 @@ MenuBar::MenuBar( const MenuBar& rMenu ) : Menu( true )
     mbHideBtnVisible    = false;
     *this               = rMenu;
     bIsMenuBar          = true;
+    nHideAccel = 0x8000;
 }
 
 MenuBar::~MenuBar()
@@ -3336,6 +3342,31 @@ bool MenuBar::ImplHandleKeyEvent( const KeyEvent& rKEvent, bool bFromMenu )
     if ( pWin && pWin->IsEnabled() && pWin->IsInputEnabled()  && ! pWin->IsInModalMode() )
         bDone = ((MenuBarWindow*)pWin)->ImplHandleKeyEvent( rKEvent, bFromMenu );
     return bDone;
+}
+
+bool MenuBar::ImplHandleCmdEvent( const CommandEvent& rCEvent )
+{
+    bool bDone = false;
+    const CommandModKeyData* pCData;
+
+    // No keyboard processing when system handles the menu or our menubar is invisible
+    if( !IsDisplayable() ||
+        ( ImplGetSalMenu() && ImplGetSalMenu()->VisibleMenuBar() ) )
+        return bDone;
+
+    // check for enabled, if this method is called from another window...
+    Window* pWin = ImplGetWindow();
+    if ( pWin && pWin->IsEnabled() && pWin->IsInputEnabled()  && ! pWin->IsInModalMode() )
+    {
+        if (rCEvent.GetCommand() == COMMAND_MODKEYCHANGE)
+        {
+            pCData = rCEvent.GetModKeyData ();
+            if (pCData && pCData->IsMod2()) ((MenuBarWindow *)pWin)->RedrawMenus (false);
+            else ((MenuBarWindow *)pWin)->RedrawMenus (true);
+            return true;
+        }
+    }
+    return false;
 }
 
 void MenuBar::SelectEntry( sal_uInt16 nId )
@@ -3570,6 +3601,10 @@ sal_uInt16 PopupMenu::ImplExecute( Window* pW, const Rectangle& rRect, sal_uLong
 {
     if ( !pSFrom && ( PopupMenu::IsInExecute() || !GetItemCount() ) )
         return 0;
+
+    // set the flag to hide or show accelerators in the menu depending on whether the menu was launched by mouse or keyboard shortcut
+    if (bMenuKey == true) nHideAccel = 0;
+    else nHideAccel = 0x8000;
 
     delete mpLayoutData, mpLayoutData = NULL;
 
@@ -4586,6 +4621,9 @@ void MenuFloatingWindow::ChangeHighlightItem( sal_uInt16 n, bool bStartPopupTime
     if( ! pMenu )
         return;
 
+    if (bMenuKey == true) nHideAccel = 0;
+    else nHideAccel = 0x8000;
+
     if ( nHighlightedItem != ITEMPOS_INVALID )
     {
         HighlightItem( nHighlightedItem, false );
@@ -5388,6 +5426,7 @@ void MenuBarWindow::PopupClosed( Menu* pPopup )
 void MenuBarWindow::MouseButtonDown( const MouseEvent& rMEvt )
 {
     mbAutoPopup = true;
+    bMenuKey = false;
     sal_uInt16 nEntry = ImplFindEntry( rMEvt.GetPosPixel() );
     if ( ( nEntry != ITEMPOS_INVALID ) && !pActivePopup )
     {
@@ -5448,6 +5487,9 @@ void MenuBarWindow::ChangeHighlightItem( sal_uInt16 n, bool bSelectEntry, bool b
 {
     if( ! pMenu )
         return;
+
+    // always hide accelerators when updating the menu bar...
+    nHideAccel = 0x8000;
 
     // #57934# close active popup if applicable, as TH's background storage works.
     MenuItemData* pNextData = pMenu->pItemList->GetDataFromPos( n );
@@ -5531,6 +5573,110 @@ void MenuBarWindow::ChangeHighlightItem( sal_uInt16 n, bool bSelectEntry, bool b
     // #58935# #73659# Focus, if no popup underneath...
     if ( bJustActivated && !pActivePopup )
         GrabFocus();
+}
+
+void MenuBarWindow::RedrawMenus( bool bHideAccels )
+{
+    if( ! pMenu )
+        return;
+
+    bool bHighlight = true;
+
+    if (bHideAccels) nHideAccel = 0x8000;
+    else nHideAccel = 0;
+
+    long nX = 0;
+    size_t nCount = pMenu->pItemList->size();
+    for ( size_t n = 0; n < nCount; n++ )
+    {
+        MenuItemData* pData = pMenu->pItemList->GetDataFromPos( n );
+        //if ( n == nPos )
+        //{
+            if ( pData->eType != MENUITEM_SEPARATOR )
+            {
+                // #107747# give menuitems the height of the menubar
+                Rectangle aRect = Rectangle( Point( nX, 1 ), Size( pData->aSz.Width(), GetOutputSizePixel().Height()-2 ) );
+                Push( PUSH_CLIPREGION );
+                IntersectClipRegion( aRect );
+                bool bRollover = bHighlight && n != nHighlightedItem;
+                if ( bHighlight )
+                {
+                    if( IsNativeControlSupported( CTRL_MENUBAR, PART_MENU_ITEM ) &&
+                        IsNativeControlSupported( CTRL_MENUBAR, PART_ENTIRE_CONTROL ) )
+                    {
+                        // draw background (transparency)
+                        MenubarValue aControlValue;
+                        aControlValue.maTopDockingAreaHeight = ImplGetTopDockingAreaHeight( this );
+
+                        if ( !Application::GetSettings().GetStyleSettings().GetPersonaHeader().IsEmpty() )
+                            Erase();
+                        else
+                        {
+                            Point tmp(0,0);
+                            Rectangle aBgRegion( tmp, GetOutputSizePixel() );
+                            DrawNativeControl( CTRL_MENUBAR, PART_ENTIRE_CONTROL,
+                                    aBgRegion,
+                                    CTRL_STATE_ENABLED,
+                                    aControlValue,
+                                    OUString() );
+                        }
+
+                        ImplAddNWFSeparator( this, aControlValue );
+
+                        // draw selected item
+                        ControlState nState = CTRL_STATE_ENABLED;
+                        if ( bRollover )
+                            nState |= CTRL_STATE_ROLLOVER;
+                        else
+                            nState |= CTRL_STATE_SELECTED;
+                        DrawNativeControl( CTRL_MENUBAR, PART_MENU_ITEM,
+                                           aRect,
+                                           nState,
+                                           aControlValue,
+                                           OUString() );
+                    }
+                    else
+                    {
+                        if ( bRollover )
+                            SetFillColor( GetSettings().GetStyleSettings().GetMenuBarRolloverColor() );
+                        else
+                            SetFillColor( GetSettings().GetStyleSettings().GetMenuHighlightColor() );
+                        SetLineColor();
+                        DrawRect( aRect );
+                    }
+                }
+                else
+                {
+                    if( IsNativeControlSupported( CTRL_MENUBAR, PART_ENTIRE_CONTROL) )
+                    {
+                        MenubarValue aMenubarValue;
+                        aMenubarValue.maTopDockingAreaHeight = ImplGetTopDockingAreaHeight( this );
+
+                        if ( !Application::GetSettings().GetStyleSettings().GetPersonaHeader().IsEmpty() )
+                            Erase( aRect );
+                        else
+                        {
+                            // use full window size to get proper gradient
+                            // but clip accordingly
+                            Point aPt;
+                            Rectangle aCtrlRect( aPt, GetOutputSizePixel() );
+
+                            DrawNativeControl( CTRL_MENUBAR, PART_ENTIRE_CONTROL, aCtrlRect, CTRL_STATE_ENABLED, aMenubarValue, OUString() );
+                        }
+
+                        ImplAddNWFSeparator( this, aMenubarValue );
+                    }
+                    else
+                        Erase( aRect );
+                }
+                Pop();
+                pMenu->ImplPaint( this, 0, 0, pData, bHighlight, false, bRollover );
+            //}
+            //return;
+        }
+
+        nX += pData->aSz.Width();
+    }
 }
 
 void MenuBarWindow::HighlightItem( sal_uInt16 nPos, bool bHighlight )
@@ -5816,6 +5962,8 @@ bool MenuBarWindow::ImplHandleKeyEvent( const KeyEvent& rKEvent, bool bFromMenu 
             if ( pData && (nEntry != ITEMPOS_INVALID) )
             {
                 mbAutoPopup = true;
+                bMenuKey = true;
+                RedrawMenus (true);
                 ChangeHighlightItem( nEntry, true );
                 bDone = true;
             }
