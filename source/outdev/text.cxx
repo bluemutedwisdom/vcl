@@ -2138,7 +2138,7 @@ void OutputDevice::DrawCtrlText( const Point& rPos, const OUString& rStr,
             SetTextColor( GetSettings().GetStyleSettings().GetDisableColor() );
 
         DrawText( rPos, aStr, nIndex, nLen, pVector, pDisplayText );
-        if ( !(GetSettings().GetStyleSettings().GetOptions() & STYLE_OPTION_NOMNEMONICS) && !pVector & !(nStyle & 0x8000) )
+        if ( !(GetSettings().GetStyleSettings().GetOptions() & STYLE_OPTION_NOMNEMONICS) && !pVector & !(nStyle & TEXT_DRAW_HIDEMNEMONIC) )
         {
             if ( nMnemonicPos != -1 )
                 ImplDrawMnemonicLine( nMnemonicX, nMnemonicY, nMnemonicWidth );
@@ -2150,7 +2150,7 @@ void OutputDevice::DrawCtrlText( const Point& rPos, const OUString& rStr,
     else
     {
         DrawText( rPos, aStr, nIndex, nLen, pVector, pDisplayText );
-        if ( !(GetSettings().GetStyleSettings().GetOptions() & STYLE_OPTION_NOMNEMONICS) && !pVector & !(nStyle & 0x8000) )
+        if ( !(GetSettings().GetStyleSettings().GetOptions() & STYLE_OPTION_NOMNEMONICS) && !pVector & !(nStyle & TEXT_DRAW_HIDEMNEMONIC) )
         {
             if ( nMnemonicPos != -1 )
                 ImplDrawMnemonicLine( nMnemonicX, nMnemonicY, nMnemonicWidth );

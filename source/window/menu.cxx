@@ -88,8 +88,7 @@ using namespace vcl;
 // document closer
 #define IID_DOCUMENTCLOSE 1
 
-unsigned int nHideAccel;
-bool bMenuKey;
+bool bHideAccel, bMenuKey;
 
 static bool ImplAccelDisabled()
 {
@@ -707,7 +706,7 @@ private:
 
     std::map< sal_uInt16, AddButtonEntry > m_aAddButtons;
 
-    void            RedrawMenus( bool bHideAccels );
+    void            RedrawMenus( void );
     void            HighlightItem( sal_uInt16 nPos, bool bHighlight );
     void            ChangeHighlightItem( sal_uInt16 n, bool bSelectPopupEntry, bool bAllowRestoreFocus = true, bool bDefaultToDocument = true );
 
@@ -2808,7 +2807,8 @@ void Menu::ImplPaint( Window* pWin, sal_uInt16 nBorder, long nStartY, MenuItemDa
                     aTmpPos.X() = aPos.X() + nTextPos;
                     aTmpPos.Y() = aPos.Y();
                     aTmpPos.Y() += nTextOffsetY;
-                    sal_uInt16 nStyle = nTextStyle|TEXT_DRAW_MNEMONIC | nHideAccel;
+                    sal_uInt16 nStyle = nTextStyle|TEXT_DRAW_MNEMONIC;
+                    if (bHideAccel) nStyle |= TEXT_DRAW_HIDEMNEMONIC;
                     if ( pData->bIsTemporary )
                         nStyle |= TEXT_DRAW_DISABLE;
                     MetricVector* pVector = bLayout ? &mpLayoutData->m_aUnicodeBoundRects : NULL;
@@ -3248,7 +3248,7 @@ MenuBar::MenuBar() : Menu( true )
     mbCloserVisible     = false;
     mbFloatBtnVisible   = false;
     mbHideBtnVisible    = false;
-    nHideAccel = 0x8000;
+    bHideAccel          = true;
 }
 
 MenuBar::MenuBar( const MenuBar& rMenu ) : Menu( true )
@@ -3259,7 +3259,7 @@ MenuBar::MenuBar( const MenuBar& rMenu ) : Menu( true )
     mbHideBtnVisible    = false;
     *this               = rMenu;
     bIsMenuBar          = true;
-    nHideAccel = 0x8000;
+    bHideAccel          = true;
 }
 
 MenuBar::~MenuBar()
@@ -3361,8 +3361,9 @@ bool MenuBar::ImplHandleCmdEvent( const CommandEvent& rCEvent )
         if (rCEvent.GetCommand() == COMMAND_MODKEYCHANGE)
         {
             pCData = rCEvent.GetModKeyData ();
-            if (pCData && pCData->IsMod2()) ((MenuBarWindow *)pWin)->RedrawMenus (false);
-            else ((MenuBarWindow *)pWin)->RedrawMenus (true);
+            if (pCData && pCData->IsMod2()) bHideAccel = false;
+            else bHideAccel = true;
+            ((MenuBarWindow *)pWin)->RedrawMenus ();
             return true;
         }
     }
@@ -3603,8 +3604,7 @@ sal_uInt16 PopupMenu::ImplExecute( Window* pW, const Rectangle& rRect, sal_uLong
         return 0;
 
     // set the flag to hide or show accelerators in the menu depending on whether the menu was launched by mouse or keyboard shortcut
-    if (bMenuKey == true) nHideAccel = 0;
-    else nHideAccel = 0x8000;
+    bHideAccel = !bMenuKey;
 
     delete mpLayoutData, mpLayoutData = NULL;
 
@@ -4621,8 +4621,7 @@ void MenuFloatingWindow::ChangeHighlightItem( sal_uInt16 n, bool bStartPopupTime
     if( ! pMenu )
         return;
 
-    if (bMenuKey == true) nHideAccel = 0;
-    else nHideAccel = 0x8000;
+    bHideAccel = !bMenuKey;
 
     if ( nHighlightedItem != ITEMPOS_INVALID )
     {
@@ -5489,7 +5488,7 @@ void MenuBarWindow::ChangeHighlightItem( sal_uInt16 n, bool bSelectEntry, bool b
         return;
 
     // always hide accelerators when updating the menu bar...
-    nHideAccel = 0x8000;
+    bHideAccel = true;
 
     // #57934# close active popup if applicable, as TH's background storage works.
     MenuItemData* pNextData = pMenu->pItemList->GetDataFromPos( n );
@@ -5575,15 +5574,12 @@ void MenuBarWindow::ChangeHighlightItem( sal_uInt16 n, bool bSelectEntry, bool b
         GrabFocus();
 }
 
-void MenuBarWindow::RedrawMenus( bool bHideAccels )
+void MenuBarWindow::RedrawMenus( void )
 {
     if( ! pMenu )
         return;
 
     bool bHighlight = true;
-
-    if (bHideAccels) nHideAccel = 0x8000;
-    else nHideAccel = 0;
 
     long nX = 0;
     size_t nCount = pMenu->pItemList->size();
@@ -5963,7 +5959,8 @@ bool MenuBarWindow::ImplHandleKeyEvent( const KeyEvent& rKEvent, bool bFromMenu 
             {
                 mbAutoPopup = true;
                 bMenuKey = true;
-                RedrawMenus (true);
+                bHideAccel = true;
+                RedrawMenus ();
                 ChangeHighlightItem( nEntry, true );
                 bDone = true;
             }
