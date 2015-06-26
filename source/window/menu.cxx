@@ -5925,15 +5925,10 @@ bool MenuBarWindow::ImplHandleKeyEvent( const KeyEvent& rKEvent, bool bFromMenu 
         {
             if( pActivePopup )
             {
-                // bring focus to menu bar without any open popup
+                // hide the menu and remove the focus...
                 mbAutoPopup = false;
-                sal_uInt16 n = nHighlightedItem;
-                nHighlightedItem = ITEMPOS_INVALID;
-                bStayActive = true;
-                ChangeHighlightItem( n, false );
-                bStayActive = false;
                 KillActivePopup();
-                GrabFocus();
+                ChangeHighlightItem( ITEMPOS_INVALID, false );
             }
             else
                 ChangeHighlightItem( ITEMPOS_INVALID, false );
