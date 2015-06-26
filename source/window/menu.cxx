@@ -5023,7 +5023,8 @@ void MenuFloatingWindow::KeyInput( const KeyEvent& rKEvent )
             sal_uInt16 nPos = 0;
             sal_uInt16 nDuplicates = 0;
             MenuItemData* pData = (nCharCode && pMenu) ? pMenu->GetItemList()->SearchItem( nCharCode, rKEvent.GetKeyCode(), nPos, nDuplicates, nHighlightedItem ) : NULL;
-            if ( pData && bMenuKey )
+            bool accel = ImplGetSVData()->maNWFData.mbEnableAccel;
+            if ( pData && bMenuKey && accel )
             {
                 if ( pData->pSubMenu || nDuplicates > 1 )
                 {
@@ -5943,7 +5944,8 @@ bool MenuBarWindow::ImplHandleKeyEvent( const KeyEvent& rKEvent, bool bFromMenu 
         }
     }
 
-    if ( !bDone && ( bFromMenu || rKEvent.GetKeyCode().IsMod2() ) )
+    bool accel = ImplGetSVData()->maNWFData.mbEnableAccel;
+    if ( !bDone && ( bFromMenu || (rKEvent.GetKeyCode().IsMod2() && accel) ) )
     {
         sal_Unicode nCharCode = rKEvent.GetCharCode();
         if ( nCharCode )
