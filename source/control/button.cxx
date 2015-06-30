@@ -68,6 +68,7 @@ public:
     Image           maImage;
     ImageAlign      meImageAlign;
     SymbolAlign     meSymbolAlign;
+    bool            mbShowAccelerator;
 
 public:
                     ImplCommonButtonData();
@@ -75,7 +76,7 @@ public:
 };
 
 ImplCommonButtonData::ImplCommonButtonData() : maFocusRect(), mnSeparatorX(0), mnButtonState(0),
-mbSmallSymbol(false), maImage(), meImageAlign(IMAGEALIGN_TOP), meSymbolAlign(SYMBOLALIGN_LEFT)
+mbSmallSymbol(false), maImage(), meImageAlign(IMAGEALIGN_TOP), meSymbolAlign(SYMBOLALIGN_LEFT), mbShowAccelerator(false)
 {
 }
 
@@ -583,6 +584,16 @@ bool Button::set_property(const OString &rKey, const OString &rValue)
     return true;
 }
 
+void Button::SetShowAccelerator (bool state)
+{
+    mpButtonData->mbShowAccelerator = state;
+}
+
+bool Button::GetShowAccelerator (void)
+{
+    return mpButtonData->mbShowAccelerator;
+}
+
 void PushButton::ImplInitPushButtonData()
 {
     mpWindowImpl->mbPushButton    = true;
@@ -1034,7 +1045,8 @@ void PushButton::ImplDrawPushButton( bool bLayout )
 
         // draw content using the same aInRect as non-native VCL would do
         ImplDrawPushButtonContent( this,
-                                   (nState&CTRL_STATE_ROLLOVER) ? WINDOW_DRAW_ROLLOVER : 0,
+                                   ((nState&CTRL_STATE_ROLLOVER) ? WINDOW_DRAW_ROLLOVER : 0) |
+                                   (GetShowAccelerator() ? 0 : WINDOW_DRAW_NOMNEMONIC),
                                    aInRect, bLayout, bDrawMenuSep );
 
         if ( HasFocus() )

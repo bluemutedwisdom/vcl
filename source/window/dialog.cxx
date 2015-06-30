@@ -564,6 +564,44 @@ IMPL_LINK_NOARG(Dialog, ImplAsyncCloseHdl)
     return 0;
 }
 
+bool Dialog::ImplHandleCmdEvent( const CommandEvent& rCEvent )
+{
+    bool bShowAccel;
+    const CommandModKeyData* pCData;
+
+    // check for enabled, if this method is called from another window...
+    if (rCEvent.GetCommand() == COMMAND_MODKEYCHANGE)
+    {
+        pCData = rCEvent.GetModKeyData ();
+        if (pCData && pCData->IsMod2()) bShowAccel = true;
+        else bShowAccel = false;
+
+        Window*                 pGetChild;
+        Window*                 pChild;
+        PushButton *            pButton;
+        Rectangle r;
+        const char *cptr;
+
+        pGetChild = GetWindow( WINDOW_FIRSTCHILD );
+        while ( pGetChild )
+        {
+            pChild = pGetChild->ImplGetWindow();
+
+            cptr = OUStringToOString( pChild->GetText(), RTL_TEXTENCODING_UTF8 ).getStr();
+            if (strchr (cptr, '~') && pChild->GetType() != WINDOW_FIXEDTEXT)
+            {
+                pButton = (PushButton *) pChild;
+                pButton->SetShowAccelerator (bShowAccel);
+                pButton->Paint(r);
+            }
+
+            pGetChild = nextLogicalChildOfParent(this, pGetChild);
+        }
+        return true;
+    }
+    return false;
+}
+
 bool Dialog::Notify( NotifyEvent& rNEvt )
 {
     // first call the base class due to Tab control
@@ -606,6 +644,11 @@ bool Dialog::Notify( NotifyEvent& rNEvt )
                 }
 
             }
+        }
+        else if (rNEvt.GetType() == EVENT_COMMAND)
+        {
+            if (ImplHandleCmdEvent( *rNEvt.GetCommandEvent()))
+                return true;
         }
     }
 
