@@ -578,8 +578,8 @@ bool Dialog::ImplHandleCmdEvent( const CommandEvent& rCEvent )
 
         Window*                 pGetChild;
         Window*                 pChild;
-        PushButton *            pButton;
-        Rectangle r;
+        Button *            pButton;
+        FixedText *             pFixed;
         const char *cptr;
 
         pGetChild = GetWindow( WINDOW_FIRSTCHILD );
@@ -588,13 +588,21 @@ bool Dialog::ImplHandleCmdEvent( const CommandEvent& rCEvent )
             pChild = pGetChild->ImplGetWindow();
 
             cptr = OUStringToOString( pChild->GetText(), RTL_TEXTENCODING_UTF8 ).getStr();
-            if (strchr (cptr, '~') && pChild->GetType() != WINDOW_FIXEDTEXT)
+            if (strchr (cptr, '~'))
             {
-                pButton = (PushButton *) pChild;
-                pButton->SetShowAccelerator (bShowAccel);
-                pButton->Paint(r);
+                if (pChild->GetType() == WINDOW_FIXEDTEXT)
+                {
+                    pFixed = (FixedText *) pChild;
+                    pFixed->SetShowAccelerator (bShowAccel);
+                    pFixed->Invalidate();
+                }
+                else
+                {
+                    pButton = (Button *) pChild;
+                    pButton->SetShowAccelerator (bShowAccel);
+                    pButton->Invalidate();
+                }
             }
-
             pGetChild = nextLogicalChildOfParent(this, pGetChild);
         }
         return true;
