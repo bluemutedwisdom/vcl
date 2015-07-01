@@ -138,7 +138,6 @@ FixedText::FixedText( Window* pParent, WinBits nStyle )
     , m_nMaxWidthChars(-1)
     , m_nMinWidthChars(-1)
     , m_pMnemonicWindow(NULL)
-    , mbShowAccelerator(false)
 {
     ImplInit( pParent, nStyle );
 }
@@ -208,7 +207,7 @@ void FixedText::ImplDraw( OutputDevice* pDev, sal_uLong nDrawFlags,
         nTextStyle &= ~(TEXT_DRAW_ENDELLIPSIS | TEXT_DRAW_MULTILINE | TEXT_DRAW_WORDBREAK);
         nTextStyle |= TEXT_DRAW_PATHELLIPSIS;
     }
-    if ( nDrawFlags & WINDOW_DRAW_NOMNEMONIC || !mbShowAccelerator)
+    if ( nDrawFlags & WINDOW_DRAW_NOMNEMONIC )
     {
         if ( nTextStyle & TEXT_DRAW_MNEMONIC )
         {
@@ -457,11 +456,6 @@ void FixedText::set_mnemonic_widget(Window *pWindow)
     m_pMnemonicWindow = pWindow;
     if (m_pMnemonicWindow)
         m_pMnemonicWindow->add_mnemonic_label(this);
-}
-
-void FixedText::SetShowAccelerator (bool state)
-{
-    mbShowAccelerator = state;
 }
 
 FixedText::~FixedText()

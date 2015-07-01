@@ -566,44 +566,25 @@ IMPL_LINK_NOARG(Dialog, ImplAsyncCloseHdl)
 
 bool Dialog::ImplHandleCmdEvent( const CommandEvent& rCEvent )
 {
-    bool bShowAccel;
-    const CommandModKeyData* pCData;
-
-    // check for enabled, if this method is called from another window...
     if (rCEvent.GetCommand() == COMMAND_MODKEYCHANGE)
     {
-        pCData = rCEvent.GetModKeyData ();
-        if (pCData && pCData->IsMod2()) bShowAccel = true;
-        else bShowAccel = false;
+        const CommandModKeyData *pCData = rCEvent.GetModKeyData ();
 
-        Window*                 pGetChild;
-        Window*                 pChild;
-        Button *            pButton;
-        FixedText *             pFixed;
-        const char *cptr;
-
-        pGetChild = GetWindow( WINDOW_FIRSTCHILD );
-        while ( pGetChild )
+        Window *pGetChild = GetWindow (WINDOW_FIRSTCHILD);
+        while (pGetChild)
         {
-            pChild = pGetChild->ImplGetWindow();
+            Control *pControl = (Control *)(pGetChild->ImplGetWindow());
 
-            cptr = OUStringToOString( pChild->GetText(), RTL_TEXTENCODING_UTF8 ).getStr();
+            const char *cptr = OUStringToOString (pControl->GetText (), RTL_TEXTENCODING_UTF8).getStr();
             if (strchr (cptr, '~'))
             {
-                if (pChild->GetType() == WINDOW_FIXEDTEXT)
-                {
-                    pFixed = (FixedText *) pChild;
-                    pFixed->SetShowAccelerator (bShowAccel);
-                    pFixed->Invalidate();
-                }
+                if (pCData && pCData->IsMod2())
+                    pControl->SetShowAccelerator (true);
                 else
-                {
-                    pButton = (Button *) pChild;
-                    pButton->SetShowAccelerator (bShowAccel);
-                    pButton->Invalidate();
-                }
+                    pControl->SetShowAccelerator (false);
+                pControl->Invalidate ();
             }
-            pGetChild = nextLogicalChildOfParent(this, pGetChild);
+            pGetChild = nextLogicalChildOfParent (this, pGetChild);
         }
         return true;
     }

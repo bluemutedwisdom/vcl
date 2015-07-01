@@ -68,7 +68,6 @@ public:
     Image           maImage;
     ImageAlign      meImageAlign;
     SymbolAlign     meSymbolAlign;
-    bool            mbShowAccelerator;
 
 public:
                     ImplCommonButtonData();
@@ -76,7 +75,7 @@ public:
 };
 
 ImplCommonButtonData::ImplCommonButtonData() : maFocusRect(), mnSeparatorX(0), mnButtonState(0),
-mbSmallSymbol(false), maImage(), meImageAlign(IMAGEALIGN_TOP), meSymbolAlign(SYMBOLALIGN_LEFT), mbShowAccelerator(false)
+mbSmallSymbol(false), maImage(), meImageAlign(IMAGEALIGN_TOP), meSymbolAlign(SYMBOLALIGN_LEFT)
 {
 }
 
@@ -243,7 +242,7 @@ void Button::ImplDrawAlignedImage( OutputDevice* pDev, Point& rPos,
     ImageAlign      eImageAlign = mpButtonData->meImageAlign;
     Size            aImageSize = mpButtonData->maImage.GetSizePixel();
 
-    if ( ( nDrawFlags & WINDOW_DRAW_NOMNEMONIC || !mpButtonData->mbShowAccelerator) &&
+    if ( ( nDrawFlags & WINDOW_DRAW_NOMNEMONIC ) &&
          ( nTextStyle & TEXT_DRAW_MNEMONIC ) )
     {
         aText = GetNonMnemonicString( aText );
@@ -582,11 +581,6 @@ bool Button::set_property(const OString &rKey, const OString &rValue)
     else
         return Control::set_property(rKey, rValue);
     return true;
-}
-
-void Button::SetShowAccelerator (bool state)
-{
-    mpButtonData->mbShowAccelerator = state;
 }
 
 void PushButton::ImplInitPushButtonData()
