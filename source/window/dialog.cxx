@@ -582,7 +582,7 @@ bool Dialog::ImplHandleCmdEvent( const CommandEvent& rCEvent )
                     pControl->SetShowAccelerator (true);
                 else
                     pControl->SetShowAccelerator (false);
-                pControl->Invalidate ();
+                pControl->Invalidate (INVALIDATE_UPDATE);
             }
             pGetChild = nextLogicalChildOfParent (this, pGetChild);
         }
