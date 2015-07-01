@@ -243,7 +243,7 @@ void Button::ImplDrawAlignedImage( OutputDevice* pDev, Point& rPos,
     ImageAlign      eImageAlign = mpButtonData->meImageAlign;
     Size            aImageSize = mpButtonData->maImage.GetSizePixel();
 
-    if ( ( nDrawFlags & WINDOW_DRAW_NOMNEMONIC ) &&
+    if ( ( nDrawFlags & WINDOW_DRAW_NOMNEMONIC || !mpButtonData->mbShowAccelerator) &&
          ( nTextStyle & TEXT_DRAW_MNEMONIC ) )
     {
         aText = GetNonMnemonicString( aText );
@@ -587,11 +587,6 @@ bool Button::set_property(const OString &rKey, const OString &rValue)
 void Button::SetShowAccelerator (bool state)
 {
     mpButtonData->mbShowAccelerator = state;
-}
-
-bool Button::GetShowAccelerator (void)
-{
-    return mpButtonData->mbShowAccelerator;
 }
 
 void PushButton::ImplInitPushButtonData()
@@ -1045,8 +1040,7 @@ void PushButton::ImplDrawPushButton( bool bLayout )
 
         // draw content using the same aInRect as non-native VCL would do
         ImplDrawPushButtonContent( this,
-                                   ((nState&CTRL_STATE_ROLLOVER) ? WINDOW_DRAW_ROLLOVER : 0) |
-                                   (GetShowAccelerator() ? 0 : WINDOW_DRAW_NOMNEMONIC),
+                                   (nState&CTRL_STATE_ROLLOVER) ? WINDOW_DRAW_ROLLOVER : 0,
                                    aInRect, bLayout, bDrawMenuSep );
 
         if ( HasFocus() )

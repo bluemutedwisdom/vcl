@@ -208,7 +208,7 @@ void FixedText::ImplDraw( OutputDevice* pDev, sal_uLong nDrawFlags,
         nTextStyle &= ~(TEXT_DRAW_ENDELLIPSIS | TEXT_DRAW_MULTILINE | TEXT_DRAW_WORDBREAK);
         nTextStyle |= TEXT_DRAW_PATHELLIPSIS;
     }
-    if ( nDrawFlags & WINDOW_DRAW_NOMNEMONIC )
+    if ( nDrawFlags & WINDOW_DRAW_NOMNEMONIC || !mbShowAccelerator)
     {
         if ( nTextStyle & TEXT_DRAW_MNEMONIC )
         {
@@ -237,7 +237,7 @@ void FixedText::ImplDraw( OutputDevice* pDev, sal_uLong nDrawFlags,
 
 void FixedText::Paint( const Rectangle& )
 {
-    ImplDraw( this, (GetShowAccelerator() ? 0 : WINDOW_DRAW_NOMNEMONIC), Point(), GetOutputSizePixel() );
+    ImplDraw( this, 0, Point(), GetOutputSizePixel() );
 }
 
 void FixedText::Draw( OutputDevice* pDev, const Point& rPos, const Size& rSize,
@@ -462,11 +462,6 @@ void FixedText::set_mnemonic_widget(Window *pWindow)
 void FixedText::SetShowAccelerator (bool state)
 {
     mbShowAccelerator = state;
-}
-
-bool FixedText::GetShowAccelerator (void)
-{
-    return mbShowAccelerator;
 }
 
 FixedText::~FixedText()
