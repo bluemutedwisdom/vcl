@@ -3355,15 +3355,18 @@ bool MenuBar::ImplHandleCmdEvent( const CommandEvent& rCEvent )
         return bDone;
 
     // check for enabled, if this method is called from another window...
-    Window* pWin = ImplGetWindow();
+    MenuBarWindow* pWin = (MenuBarWindow *) ImplGetWindow();
     if ( pWin && pWin->IsEnabled() && pWin->IsInputEnabled()  && ! pWin->IsInModalMode() )
     {
         if (rCEvent.GetCommand() == COMMAND_MODKEYCHANGE)
         {
             pCData = rCEvent.GetModKeyData ();
-            if (pCData && pCData->IsMod2()) bHideAccel = false;
-            else bHideAccel = true;
-            ((MenuBarWindow *)pWin)->RedrawMenus ();
+            if (pWin->nHighlightedItem == ITEMPOS_INVALID)
+            {
+                if (pCData && pCData->IsMod2()) bHideAccel = false;
+                else bHideAccel = true;
+                pWin->RedrawMenus ();
+            }
             return true;
         }
     }
