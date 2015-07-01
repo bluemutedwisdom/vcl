@@ -444,7 +444,11 @@ void Control::DrawControlText( OutputDevice& _rTargetDevice, Rectangle& _io_rRec
 {
     OUString rPStr = _rStr;
     sal_uInt16 nPStyle = _nStyle;
-    if (mbShowAccelerator == false)
+
+    bool accel = ImplGetSVData()->maNWFData.mbEnableAccel;
+    bool autoacc = ImplGetSVData()->maNWFData.mbAutoAccel;
+
+    if (!accel || (autoacc && !mbShowAccelerator))
     {
         rPStr = GetNonMnemonicString( _rStr );
         nPStyle &= ~TEXT_DRAW_MNEMONIC;
