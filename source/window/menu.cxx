@@ -88,8 +88,6 @@ using namespace vcl;
 // document closer
 #define IID_DOCUMENTCLOSE 1
 
-bool bHideAccel, bMenuKey;
-
 static bool ImplAccelDisabled()
 {
     // display of accelerator strings may be suppressed via configuration
@@ -699,6 +697,8 @@ private:
     bool            mbAutoPopup;
     bool            bIgnoreFirstMove;
     bool            bStayActive;
+    bool            mbHideAccel;
+    bool            mbMenuKey;
 
     DecoToolBox     aCloser;
     PushButton      aFloatBtn;
@@ -760,6 +760,10 @@ public:
     Rectangle           GetMenuBarButtonRectPixel( sal_uInt16 nId );
     void                RemoveMenuBarButton( sal_uInt16 nId );
     bool                HandleMenuButtonEvent( sal_uInt16 i_nButtonId );
+    void                SetMBWHideAccel (bool val)                     { mbHideAccel = val; }
+    bool                GetMBWHideAccel (void) const                   { return mbHideAccel; }
+    void                SetMBWMenuKey (bool val)                       { mbMenuKey = val; }
+    bool                GetMBWMenuKey (void) const                     { return mbMenuKey; }
 };
 
 static void ImplAddNWFSeparator( Window *pThis, const MenubarValue& rMenubarValue )
@@ -2807,7 +2811,12 @@ void Menu::ImplPaint( Window* pWin, sal_uInt16 nBorder, long nStartY, MenuItemDa
                     aTmpPos.Y() = aPos.Y();
                     aTmpPos.Y() += nTextOffsetY;
                     sal_uInt16 nStyle = nTextStyle|TEXT_DRAW_MNEMONIC;
-                    if (bHideAccel) nStyle |= TEXT_DRAW_HIDEMNEMONIC;
+
+                    const Menu *men = this;
+                    while (!men->bIsMenuBar) men = men->pStartedFrom;
+                    if (((MenuBarWindow*) (men->pWindow))->GetMBWHideAccel ())
+                        nStyle |= TEXT_DRAW_HIDEMNEMONIC;
+
                     if ( pData->bIsTemporary )
                         nStyle |= TEXT_DRAW_DISABLE;
                     MetricVector* pVector = bLayout ? &mpLayoutData->m_aUnicodeBoundRects : NULL;
@@ -3247,7 +3256,6 @@ MenuBar::MenuBar() : Menu( true )
     mbCloserVisible     = false;
     mbFloatBtnVisible   = false;
     mbHideBtnVisible    = false;
-    bHideAccel          = true;
 }
 
 MenuBar::MenuBar( const MenuBar& rMenu ) : Menu( true )
@@ -3258,7 +3266,6 @@ MenuBar::MenuBar( const MenuBar& rMenu ) : Menu( true )
     mbHideBtnVisible    = false;
     *this               = rMenu;
     bIsMenuBar          = true;
-    bHideAccel          = true;
 }
 
 MenuBar::~MenuBar()
@@ -3362,8 +3369,10 @@ bool MenuBar::ImplHandleCmdEvent( const CommandEvent& rCEvent )
             pCData = rCEvent.GetModKeyData ();
             if (pWin->nHighlightedItem == ITEMPOS_INVALID)
             {
-                if (pCData && pCData->IsMod2()) bHideAccel = false;
-                else bHideAccel = true;
+                if (pCData && pCData->IsMod2())
+                    pWin->SetMBWHideAccel (false);
+                else
+                    pWin->SetMBWHideAccel (true);
                 pWin->Invalidate (INVALIDATE_UPDATE);
             }
             return true;
@@ -3606,7 +3615,11 @@ sal_uInt16 PopupMenu::ImplExecute( Window* pW, const Rectangle& rRect, sal_uLong
         return 0;
 
     // set the flag to hide or show accelerators in the menu depending on whether the menu was launched by mouse or keyboard shortcut
-    bHideAccel = !bMenuKey;
+    if( pSFrom )
+    {
+        if( pSFrom->bIsMenuBar )
+            ((MenuBarWindow *) pSFrom->pWindow)->SetMBWHideAccel (!((MenuBarWindow *) pSFrom->pWindow)->GetMBWMenuKey ());
+    }
 
     delete mpLayoutData, mpLayoutData = NULL;
 
@@ -4623,8 +4636,6 @@ void MenuFloatingWindow::ChangeHighlightItem( sal_uInt16 n, bool bStartPopupTime
     if( ! pMenu )
         return;
 
-    bHideAccel = !bMenuKey;
-
     if ( nHighlightedItem != ITEMPOS_INVALID )
     {
         HighlightItem( nHighlightedItem, false );
@@ -5026,7 +5037,9 @@ void MenuFloatingWindow::KeyInput( const KeyEvent& rKEvent )
             sal_uInt16 nDuplicates = 0;
             MenuItemData* pData = (nCharCode && pMenu) ? pMenu->GetItemList()->SearchItem( nCharCode, rKEvent.GetKeyCode(), nPos, nDuplicates, nHighlightedItem ) : NULL;
             bool accel = ImplGetSVData()->maNWFData.mbEnableAccel;
-            if ( pData && bMenuKey && accel )
+            Menu *men = pMenu;
+            while (!men->bIsMenuBar) men = men->pStartedFrom;
+            if ( pData && ((MenuBarWindow*) (men->pWindow))->GetMBWMenuKey () && accel )
             {
                 if ( pData->pSubMenu || nDuplicates > 1 )
                 {
@@ -5190,6 +5203,7 @@ MenuBarWindow::MenuBarWindow( Window* pParent ) :
     nSaveFocusId = 0;
     bIgnoreFirstMove = true;
     bStayActive = false;
+    SetMBWHideAccel (true);
 
     ResMgr* pResMgr = ImplGetResMgr();
 
@@ -5428,7 +5442,7 @@ void MenuBarWindow::PopupClosed( Menu* pPopup )
 void MenuBarWindow::MouseButtonDown( const MouseEvent& rMEvt )
 {
     mbAutoPopup = true;
-    bMenuKey = false;
+    SetMBWMenuKey (false);
     sal_uInt16 nEntry = ImplFindEntry( rMEvt.GetPosPixel() );
     if ( ( nEntry != ITEMPOS_INVALID ) && !pActivePopup )
     {
@@ -5491,7 +5505,7 @@ void MenuBarWindow::ChangeHighlightItem( sal_uInt16 n, bool bSelectEntry, bool b
         return;
 
     // always hide accelerators when updating the menu bar...
-    bHideAccel = true;
+    SetMBWHideAccel (true);
 
     // #57934# close active popup if applicable, as TH's background storage works.
     MenuItemData* pNextData = pMenu->pItemList->GetDataFromPos( n );
@@ -5856,8 +5870,8 @@ bool MenuBarWindow::ImplHandleKeyEvent( const KeyEvent& rKEvent, bool bFromMenu 
             if ( pData && (nEntry != ITEMPOS_INVALID) )
             {
                 mbAutoPopup = true;
-                bMenuKey = true;
-                bHideAccel = true;
+                SetMBWMenuKey (true);
+                SetMBWHideAccel (true);
                 Invalidate (INVALIDATE_UPDATE);
                 ChangeHighlightItem( nEntry, true );
                 bDone = true;
