@@ -5469,8 +5469,14 @@ void MenuBarWindow::MouseMove( const MouseEvent& rMEvt )
         if ( nRolloveredItem != ITEMPOS_INVALID && nRolloveredItem != nHighlightedItem )
         {
             // there is a spurious MouseMove generated after a menu is launched from the keyboard, hence this...
-            if (nHighlightedItem != ITEMPOS_INVALID) SetMBWHideAccel (true);
-            HighlightItem( nRolloveredItem, false );
+            if (nHighlightedItem != ITEMPOS_INVALID)
+            {
+                bool hide = GetMBWHideAccel ();
+                SetMBWHideAccel (true);
+                HighlightItem( nRolloveredItem, false );
+                SetMBWHideAccel (hide);
+            }
+            else HighlightItem( nRolloveredItem, false );
         }
 
         nRolloveredItem = ITEMPOS_INVALID;
