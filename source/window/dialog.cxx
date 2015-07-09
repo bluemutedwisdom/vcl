@@ -570,13 +570,12 @@ bool Dialog::ImplHandleCmdEvent( const CommandEvent& rCEvent )
     {
         const CommandModKeyData *pCData = rCEvent.GetModKeyData ();
 
-        Window *pGetChild = GetWindow (WINDOW_FIRSTCHILD);
+        Window *pGetChild = firstLogicalChildOfParent(this);
         while (pGetChild)
         {
-            Control *pControl = (Control *)(pGetChild->ImplGetWindow());
+            Control *pControl = dynamic_cast<Control *>(pGetChild->ImplGetWindow());
 
-            const char *cptr = OUStringToOString (pControl->GetText (), RTL_TEXTENCODING_UTF8).getStr();
-            if (strchr (cptr, '~'))
+            if (pControl && pControl->GetText().indexOf('~') != -1)
             {
                 if (pCData && pCData->IsMod2())
                     pControl->SetShowAccelerator (true);

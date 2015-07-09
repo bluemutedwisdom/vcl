@@ -2812,9 +2812,9 @@ void Menu::ImplPaint( Window* pWin, sal_uInt16 nBorder, long nStartY, MenuItemDa
                     aTmpPos.Y() += nTextOffsetY;
                     sal_uInt16 nStyle = nTextStyle|TEXT_DRAW_MNEMONIC;
 
-                    const Menu *men = this;
-                    while (!men->bIsMenuBar) men = men->pStartedFrom;
-                    if (((MenuBarWindow*) (men->pWindow))->GetMBWHideAccel ())
+                    const Menu *pMen = this;
+                    while (!pMen->bIsMenuBar && pMen->pStartedFrom) pMen = pMen->pStartedFrom;
+                    if ((static_cast<MenuBarWindow*>(pMen->pWindow))->GetMBWHideAccel ())
                         nStyle |= TEXT_DRAW_HIDEMNEMONIC;
 
                     if ( pData->bIsTemporary )
@@ -3361,7 +3361,7 @@ bool MenuBar::ImplHandleCmdEvent( const CommandEvent& rCEvent )
         return bDone;
 
     // check for enabled, if this method is called from another window...
-    MenuBarWindow* pWin = (MenuBarWindow *) ImplGetWindow();
+    MenuBarWindow* pWin = static_cast <MenuBarWindow *> (ImplGetWindow());
     if ( pWin && pWin->IsEnabled() && pWin->IsInputEnabled()  && ! pWin->IsInModalMode() )
     {
         if (rCEvent.GetCommand() == COMMAND_MODKEYCHANGE)

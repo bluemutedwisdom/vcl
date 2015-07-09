@@ -369,9 +369,9 @@ void Control::ImplDrawFrame( OutputDevice* pDev, Rectangle& rRect )
     pDev->OutputDevice::SetSettings( aOriginalSettings );
 }
 
-void Control::SetShowAccelerator (bool val)
+void Control::SetShowAccelerator (bool bVal)
 {
-    mbShowAccelerator = val;
+    mbShowAccelerator = bVal;
 };
 
 bool Control::GetShowAccelerator (void) const
