@@ -5036,10 +5036,14 @@ void MenuFloatingWindow::KeyInput( const KeyEvent& rKEvent )
             sal_uInt16 nPos = 0;
             sal_uInt16 nDuplicates = 0;
             MenuItemData* pData = (nCharCode && pMenu) ? pMenu->GetItemList()->SearchItem( nCharCode, rKEvent.GetKeyCode(), nPos, nDuplicates, nHighlightedItem ) : NULL;
-            bool accel = ImplGetSVData()->maNWFData.mbEnableAccel;
-            Menu *men = pMenu;
-            while (!men->bIsMenuBar) men = men->pStartedFrom;
-            if ( pData && ((MenuBarWindow*) (men->pWindow))->GetMBWMenuKey () && accel )
+            bool bConsume = false;
+            if (pData && ImplGetSVData()->maNWFData.mbEnableAccel)
+            {
+                Menu *men = pMenu;
+                while (men && !men->IsMenuBar()) men = men->pStartedFrom;
+                bConsume = !men || (static_cast<MenuBarWindow*>(men->pWindow))->GetMBWMenuKey();
+            }
+            if (bConsume)
             {
                 if ( pData->pSubMenu || nDuplicates > 1 )
                 {
@@ -5204,6 +5208,7 @@ MenuBarWindow::MenuBarWindow( Window* pParent ) :
     bIgnoreFirstMove = true;
     bStayActive = false;
     SetMBWHideAccel (true);
+    SetMBWMenuKey (false);
 
     ResMgr* pResMgr = ImplGetResMgr();
 
